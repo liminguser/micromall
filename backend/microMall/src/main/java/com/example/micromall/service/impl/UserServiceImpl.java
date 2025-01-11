@@ -12,16 +12,24 @@ import com.example.micromall.service.UserService;
 import com.example.micromall.vo.UserVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
+
+import java.io.File;
+import java.io.IOException;
 
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
     private final PasswordEncoder passwordEncoder;
+    
+    @Value("${upload.path}")
+    private String uploadPath;
 
     @Override
     public UserVO getCurrentUser() {
@@ -98,6 +106,42 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         return convertToVO(user);
     }
 
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public String uploadAvatar(MultipartFile file) {
+        // 1. 获取当前用户ID
+        Long userId = getCurrentUserId();
+
+        // 2. 获取文件后缀
+        String originalFilename = file.getOriginalFilename();
+        String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+
+        // 3. 生成新的文件名
+        String fileName = "avatar_" + userId + "_" + System.currentTimeMillis() + extension;
+
+        // 4. 确保上传目录存在
+        File uploadDir = new File(uploadPath);
+        if (!uploadDir.exists()) {
+            uploadDir.mkdirs();
+        }
+
+        // 5. 保存文件
+        try {
+            File destFile = new File(uploadPath + File.separator + fileName);
+            file.transferTo(destFile);
+        } catch (IOException e) {
+            throw new ApiException("上传头像失败");
+        }
+
+        // 6. 更新用户头像信息
+        String avatarUrl = "/uploads/" + fileName;
+        User user = getById(userId);
+        user.setAvatar(avatarUrl);
+        updateById(user);
+
+        return avatarUrl;
+    }
+
     /**
      * 转换为VO对象
      */
@@ -112,15 +156,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      */
     private Long getCurrentUserId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
-            throw new ApiException(ResultCode.UNAUTHORIZED);
+        if (authentication != null && authentication.getPrincipal() instanceof UserDetailsImpl) {
+            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+            return userDetails.getId();
         }
-        
-        Object principal = authentication.getPrincipal();
-        if (principal instanceof UserDetailsImpl) {
-            return ((UserDetailsImpl) principal).getUser().getId();
-        }
-        
         throw new ApiException(ResultCode.UNAUTHORIZED);
     }
 } 

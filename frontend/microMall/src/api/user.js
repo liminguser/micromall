@@ -14,7 +14,7 @@ export const uploadAvatar = (file) => {
   const formData = new FormData()
   formData.append('file', file)
   return request({
-    url: '/upload/avatar',
+    url: '/users/avatar',
     method: 'post',
     data: formData,
     headers: {

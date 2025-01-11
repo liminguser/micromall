@@ -7,6 +7,7 @@ import com.example.micromall.vo.UserVO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * 用户控制器
@@ -27,6 +28,12 @@ public class UserController {
     public CommonResult<Void> updateUserInfo(@Validated @RequestBody UserUpdateDTO updateDTO) {
         userService.updateUserInfo(updateDTO);
         return CommonResult.success(null);
+    }
+
+    @PostMapping("/avatar")
+    public CommonResult<String> uploadAvatar(@RequestParam("file") MultipartFile file) {
+        String avatarUrl = userService.uploadAvatar(file);
+        return CommonResult.success(avatarUrl);
     }
 
     @PutMapping("/password")

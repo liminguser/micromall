@@ -17,8 +17,9 @@
         <el-form-item label="头像" prop="avatar">
           <el-upload
             class="avatar-uploader"
-            action="/api/upload"
+            :action="null"
             :show-file-list="false"
+            :http-request="customUpload"
             :on-success="handleAvatarSuccess"
             :before-upload="beforeAvatarUpload"
           >
@@ -114,7 +115,12 @@ const initFormData = () => {
   if (userData) {
     Object.keys(formData).forEach(key => {
       if (userData[key] !== undefined) {
-        formData[key] = userData[key]
+        if (key === 'birthday' && userData[key]) {
+          // 处理日期格式
+          formData[key] = new Date(userData[key])
+        } else {
+          formData[key] = userData[key]
+        }
       }
     })
   }
@@ -170,6 +176,21 @@ const handleSubmit = async () => {
     ElMessage.error(error.response?.data?.message || '保存失败')
   } finally {
     loading.value = false
+  }
+}
+
+// 自定义上传方法
+const customUpload = async (options) => {
+  try {
+    const response = await uploadAvatar(options.file)
+    if (response.data.code === 200) {
+      handleAvatarSuccess(response.data)
+    } else {
+      ElMessage.error(response.data.message || '上传失败')
+    }
+  } catch (error) {
+    console.error('上传失败:', error)
+    ElMessage.error(error.response?.data?.message || '上传失败')
   }
 }
 
