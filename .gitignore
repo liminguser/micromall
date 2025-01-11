@@ -1,0 +1,38 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Dependencies
+node_modules/
+target/
+dist/
+.env
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# System
+.DS_Store
+Thumbs.db
+
+# Maven
+mvnw
+mvnw.cmd
+.mvn/
+
+# Testing
+/coverage
+
+# Production
+/build
+
+# Misc
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local 
