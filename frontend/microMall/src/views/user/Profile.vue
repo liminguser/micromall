@@ -80,6 +80,7 @@ import { ref, reactive, onMounted } from 'vue'
 import { useUserStore } from '@/stores/user'
 import { ElMessage } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
+import { updateUserProfile, uploadAvatar } from '@/api/user'
 
 const userStore = useUserStore()
 const formRef = ref(null)
@@ -120,7 +121,7 @@ const initFormData = () => {
 }
 
 // 处理头像上传成功
-const handleAvatarSuccess = (response) => {
+const handleAvatarSuccess = async (response) => {
   if (response.code === 200) {
     formData.avatar = response.data.url
     ElMessage.success('头像上传成功')
@@ -150,11 +151,23 @@ const handleSubmit = async () => {
   try {
     await formRef.value.validate()
     loading.value = true
-    // TODO: 实现更新用户信息的API调用
-    ElMessage.success('保存成功')
+
+    // 调用更新用户信息的API
+    const response = await updateUserProfile(formData)
+    
+    if (response.data.code === 200) {
+      // 更新本地存储的用户信息
+      userStore.setUser({
+        ...userStore.user,
+        ...formData
+      })
+      ElMessage.success('保存成功')
+    } else {
+      ElMessage.error(response.data.message || '保存失败')
+    }
   } catch (error) {
     console.error('保存失败:', error)
-    ElMessage.error('保存失败')
+    ElMessage.error(error.response?.data?.message || '保存失败')
   } finally {
     loading.value = false
   }

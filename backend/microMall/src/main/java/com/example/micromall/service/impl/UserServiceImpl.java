@@ -4,13 +4,16 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.example.micromall.common.api.ApiException;
 import com.example.micromall.common.api.ResultCode;
-import com.example.micromall.dto.UserRegisterDTO;
+import com.example.micromall.dto.UserUpdateDTO;
 import com.example.micromall.entity.User;
 import com.example.micromall.mapper.UserMapper;
+import com.example.micromall.security.UserDetailsImpl;
 import com.example.micromall.service.UserService;
 import com.example.micromall.vo.UserVO;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -37,7 +40,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void updateUserInfo(UserRegisterDTO registerDTO) {
+    public void updateUserInfo(UserUpdateDTO updateDTO) {
         // 1. 获取当前用户ID
         Long userId = getCurrentUserId();
 
@@ -48,15 +51,15 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         }
 
         // 3. 检查手机号是否被占用
-        if (registerDTO.getPhone() != null && !registerDTO.getPhone().equals(user.getPhone())) {
+        if (updateDTO.getPhone() != null && !updateDTO.getPhone().equals(user.getPhone())) {
             if (count(new LambdaQueryWrapper<User>()
-                    .eq(User::getPhone, registerDTO.getPhone())) > 0) {
+                    .eq(User::getPhone, updateDTO.getPhone())) > 0) {
                 throw new ApiException(ResultCode.PHONE_NUMBER_EXIST);
             }
         }
 
         // 4. 更新用户信息
-        BeanUtils.copyProperties(registerDTO, user, "username", "password");
+        BeanUtils.copyProperties(updateDTO, user);
         updateById(user);
     }
 
@@ -108,7 +111,16 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
      * 获取当前用户ID
      */
     private Long getCurrentUserId() {
-        // TODO: 从SecurityContext获取当前用户ID
-        return 1L;
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            throw new ApiException(ResultCode.UNAUTHORIZED);
+        }
+        
+        Object principal = authentication.getPrincipal();
+        if (principal instanceof UserDetailsImpl) {
+            return ((UserDetailsImpl) principal).getUser().getId();
+        }
+        
+        throw new ApiException(ResultCode.UNAUTHORIZED);
     }
 } 

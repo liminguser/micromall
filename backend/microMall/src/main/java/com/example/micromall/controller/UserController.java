@@ -1,7 +1,7 @@
 package com.example.micromall.controller;
 
 import com.example.micromall.common.api.CommonResult;
-import com.example.micromall.dto.UserRegisterDTO;
+import com.example.micromall.dto.UserUpdateDTO;
 import com.example.micromall.service.UserService;
 import com.example.micromall.vo.UserVO;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,8 +24,8 @@ public class UserController {
     }
 
     @PutMapping("/info")
-    public CommonResult<Void> updateUserInfo(@Validated @RequestBody UserRegisterDTO registerDTO) {
-        userService.updateUserInfo(registerDTO);
+    public CommonResult<Void> updateUserInfo(@Validated @RequestBody UserUpdateDTO updateDTO) {
+        userService.updateUserInfo(updateDTO);
         return CommonResult.success(null);
     }
 

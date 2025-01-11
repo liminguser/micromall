@@ -20,6 +20,8 @@ public class User {
     private String phone;
     private String email;
     private String avatar;
+    private Integer gender;
+    private LocalDateTime birthday;
     private Integer status;
     private String roles;
 

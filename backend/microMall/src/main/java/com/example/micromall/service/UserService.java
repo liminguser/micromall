@@ -1,7 +1,7 @@
 package com.example.micromall.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.example.micromall.dto.UserRegisterDTO;
+import com.example.micromall.dto.UserUpdateDTO;
 import com.example.micromall.entity.User;
 import com.example.micromall.vo.UserVO;
 
@@ -17,7 +17,7 @@ public interface UserService extends IService<User> {
     /**
      * 更新用户信息
      */
-    void updateUserInfo(UserRegisterDTO registerDTO);
+    void updateUserInfo(UserUpdateDTO updateDTO);
 
     /**
      * 修改密码
