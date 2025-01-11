@@ -11,6 +11,7 @@ import com.example.micromall.security.UserDetailsImpl;
 import com.example.micromall.service.UserService;
 import com.example.micromall.vo.UserVO;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
@@ -23,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
@@ -109,37 +111,43 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     @Override
     @Transactional(rollbackFor = Exception.class)
     public String uploadAvatar(MultipartFile file) {
-        // 1. 获取当前用户ID
-        Long userId = getCurrentUserId();
-
-        // 2. 获取文件后缀
-        String originalFilename = file.getOriginalFilename();
-        String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
-
-        // 3. 生成新的文件名
-        String fileName = "avatar_" + userId + "_" + System.currentTimeMillis() + extension;
-
-        // 4. 确保上传目录存在
-        File uploadDir = new File(uploadPath);
-        if (!uploadDir.exists()) {
-            uploadDir.mkdirs();
-        }
-
-        // 5. 保存文件
         try {
-            File destFile = new File(uploadPath + File.separator + fileName);
-            file.transferTo(destFile);
+            // 确保上传目录存在
+            File uploadDir = new File(uploadPath);
+            if (!uploadDir.exists()) {
+                uploadDir.mkdirs();
+            }
+
+            // 生成文件名
+            String originalFilename = file.getOriginalFilename();
+            String extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+            Long userId = getCurrentUserId();
+            String fileName = "avatar_" + userId + "_" + System.currentTimeMillis() + extension;
+            
+            // 保存文件
+            String filePath = uploadPath + "/" + fileName;
+            file.transferTo(new File(filePath));
+            
+            // 返回相对路径，不带/api前缀
+            String avatarUrl = "/uploads/" + fileName;
+            
+            // 更新用户头像
+            User user = getById(userId);
+            if (user == null) {
+                throw new ApiException(ResultCode.USER_NOT_EXIST);
+            }
+            user.setAvatar(avatarUrl);
+            boolean updated = updateById(user);
+            
+            if (!updated) {
+                throw new ApiException("更新用户头像失败");
+            }
+            
+            return avatarUrl;
         } catch (IOException e) {
-            throw new ApiException("上传头像失败");
+            log.error("上传头像失败", e);
+            throw new ApiException("上传头像失败: " + e.getMessage());
         }
-
-        // 6. 更新用户头像信息
-        String avatarUrl = "/uploads/" + fileName;
-        User user = getById(userId);
-        user.setAvatar(avatarUrl);
-        updateById(user);
-
-        return avatarUrl;
     }
 
     /**

@@ -5,19 +5,20 @@ import { useUserStore } from './user'
 
 export const useCartStore = defineStore('cart', () => {
   const cartCount = ref(0)
+  const cartItems = ref([])
   const userStore = useUserStore()
 
   // 获取购物车数量
   const fetchCartCount = async () => {
-    if (!userStore.user?.id) {
+    if (!userStore.isAuthenticated) {
       cartCount.value = 0
       return
     }
     
     try {
-      const response = await getCartList(userStore.user.id)
-      if (response.data.code === 200) {
-        cartCount.value = response.data.data.length
+      const response = await getCartList()
+      if (response?.data) {
+        cartCount.value = response.data.length
       }
     } catch (error) {
       console.error('获取购物车数量失败:', error)
@@ -25,8 +26,16 @@ export const useCartStore = defineStore('cart', () => {
     }
   }
 
+  // 设置购物车商品
+  const setCartItems = (items) => {
+    cartItems.value = items
+    cartCount.value = items.length
+  }
+
   return {
     cartCount,
-    fetchCartCount
+    cartItems,
+    fetchCartCount,
+    setCartItems
   }
 }) 

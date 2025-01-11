@@ -24,11 +24,12 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
     @Override
     public void addResourceHandlers(ResourceHandlerRegistry registry) {
-        registry.addResourceHandler("doc.html")
-                .addResourceLocations("classpath:/META-INF/resources/");
-        registry.addResourceHandler("/webjars/**")
-                .addResourceLocations("classpath:/META-INF/resources/webjars/");
-        registry.addResourceHandler("/uploads/**")
-                .addResourceLocations("file:" + uploadPath + "/");
+        String uploadPath = this.uploadPath.endsWith("/") ? this.uploadPath : this.uploadPath + "/";
+        System.out.println("Configuring upload path: " + uploadPath);
+        
+        registry.addResourceHandler("/api/uploads/**")
+                .addResourceLocations("file:" + uploadPath)
+                .setCachePeriod(3600)
+                .resourceChain(true);
     }
 } 

@@ -35,14 +35,14 @@ service.interceptors.response.use(
         duration: 5 * 1000
       })
       return Promise.reject(new Error(res.message || '系统错误'))
-    } else {
-      return response
     }
+    return res
   },
   error => {
-    console.log('err' + error)
+    console.log('err:', error)
+    const errorMessage = error.response?.data?.message || error.message || '系统错误'
     ElMessage({
-      message: error.message,
+      message: errorMessage,
       type: 'error',
       duration: 5 * 1000
     })

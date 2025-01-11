@@ -20,13 +20,12 @@
             :action="null"
             :show-file-list="false"
             :http-request="customUpload"
-            :on-success="handleAvatarSuccess"
             :before-upload="beforeAvatarUpload"
           >
             <el-avatar
               v-if="formData.avatar"
               :size="100"
-              :src="formData.avatar"
+              :src="getAvatarUrl(formData.avatar)"
               class="avatar"
             />
             <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
@@ -126,14 +125,34 @@ const initFormData = () => {
   }
 }
 
+// 获取头像完整URL
+const getAvatarUrl = (url) => {
+  if (!url || typeof url !== 'string') return ''
+  // 如果已经是完整URL则直接返回
+  if (url.startsWith('http')) return url
+  // 如果是以/uploads开头，添加/api前缀
+  if (url.startsWith('/uploads')) return `/api${url}`
+  // 如果不是以/api开头，添加/api前缀
+  return url.startsWith('/api') ? url : `/api${url}`
+}
+
 // 处理头像上传成功
 const handleAvatarSuccess = async (response) => {
-  if (response.code === 200) {
-    formData.avatar = response.data.url
-    ElMessage.success('头像上传成功')
-  } else {
-    ElMessage.error(response.message || '上传失败')
+  console.log('Avatar success response:', response) // 添加日志
+  // 确保response是字符串类型的URL
+  const avatarUrl = typeof response === 'string' ? response : response?.data
+  if (!avatarUrl) {
+    console.error('Invalid avatar URL:', response)
+    ElMessage.error('获取头像URL失败')
+    return
   }
+  // 保存原始URL（不带/api前缀）
+  formData.avatar = avatarUrl
+  userStore.setUser({
+    ...userStore.user,
+    avatar: avatarUrl
+  })
+  ElMessage.success('头像上传成功')
 }
 
 // 头像上传前的验证
@@ -143,11 +162,32 @@ const beforeAvatarUpload = (file) => {
 
   if (!isJPG) {
     ElMessage.error('头像只能是 JPG 或 PNG 格式!')
+    return false
   }
   if (!isLt2M) {
     ElMessage.error('头像大小不能超过 2MB!')
+    return false
   }
-  return isJPG && isLt2M
+  return true
+}
+
+// 自定义上传方法
+const customUpload = async (options) => {
+  try {
+    const response = await uploadAvatar(options.file)
+    console.log('Upload response:', response) // 添加日志
+    if (response?.code === 200) {
+      handleAvatarSuccess(response.data)
+      options.onSuccess(response.data)
+    } else {
+      throw new Error(response?.message || '上传失败')
+    }
+  } catch (error) {
+    console.error('上传失败:', error)
+    const errorMsg = error.response?.data?.message || error.message || '上传失败'
+    options.onError(new Error(errorMsg))
+    ElMessage.error(errorMsg)
+  }
 }
 
 // 提交表单
@@ -161,36 +201,17 @@ const handleSubmit = async () => {
     // 调用更新用户信息的API
     const response = await updateUserProfile(formData)
     
-    if (response.data.code === 200) {
-      // 更新本地存储的用户信息
-      userStore.setUser({
-        ...userStore.user,
-        ...formData
-      })
-      ElMessage.success('保存成功')
-    } else {
-      ElMessage.error(response.data.message || '保存失败')
-    }
+    // 更新本地存储的用户信息
+    userStore.setUser({
+      ...userStore.user,
+      ...formData
+    })
+    ElMessage.success('保存成功')
   } catch (error) {
     console.error('保存失败:', error)
     ElMessage.error(error.response?.data?.message || '保存失败')
   } finally {
     loading.value = false
-  }
-}
-
-// 自定义上传方法
-const customUpload = async (options) => {
-  try {
-    const response = await uploadAvatar(options.file)
-    if (response.data.code === 200) {
-      handleAvatarSuccess(response.data)
-    } else {
-      ElMessage.error(response.data.message || '上传失败')
-    }
-  } catch (error) {
-    console.error('上传失败:', error)
-    ElMessage.error(error.response?.data?.message || '上传失败')
   }
 }
 

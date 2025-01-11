@@ -163,28 +163,48 @@ const categoryOptions = computed(() => {
   ]
 })
 
-// 计算属性：过滤有效的banner
+// 处理图片URL
+const getImageUrl = (url) => {
+  if (!url || typeof url !== 'string') return ''
+  // 如果已经是完整URL则直接返回
+  if (url.startsWith('http')) return url
+  // 如果是以/uploads开头，添加/api前缀
+  if (url.startsWith('/uploads')) return `/api${url}`
+  // 如果不是以/api开头，添加/api前缀
+  return url.startsWith('/api') ? url : `/api${url}`
+}
+
+// 计算属性：过滤有效的banner并处理图片URL
 const validBanners = computed(() => {
-  return Array.isArray(banners.value) ? banners.value.filter(banner => banner != null) : []
+  const bannerList = Array.isArray(banners.value) ? banners.value.filter(banner => banner != null) : []
+  return bannerList.map(banner => ({
+    ...banner,
+    image: getImageUrl(banner.image)
+  }))
 })
 
-// 计算属性：过滤有效的products
+// 计算属性：过滤有效的products并处理图片URL
 const validProducts = computed(() => {
   // 检查是否是分页数据
+  let productList = []
   if (products.value && products.value.records) {
-    return products.value.records.filter(product => product != null)
+    productList = products.value.records.filter(product => product != null)
+  } else {
+    // 如果不是分页数据，检查是否是数组
+    productList = Array.isArray(products.value) ? products.value.filter(product => product != null) : []
   }
-  // 如果不是分页数据，检查是否是数组
-  return Array.isArray(products.value) ? products.value.filter(product => product != null) : []
+  return productList.map(product => ({
+    ...product,
+    image: getImageUrl(product.image)
+  }))
 })
 
 // 获取轮播图商品
 const fetchBanners = async () => {
   try {
     const response = await getBannerProducts()
-    if (response.data.code === 200) {
-      banners.value = response.data.data || []
-    }
+    console.log('Banner response:', response)
+    banners.value = response?.data || []
   } catch (error) {
     console.error('获取轮播图失败:', error)
     ElMessage.error('获取轮播图失败')
@@ -196,9 +216,8 @@ const fetchBanners = async () => {
 const fetchCategories = async () => {
   try {
     const response = await getCategories()
-    if (response.data.code === 200) {
-      categories.value = response.data.data || []
-    }
+    console.log('Categories response:', response)
+    categories.value = response?.data || []
   } catch (error) {
     console.error('获取分类失败:', error)
     ElMessage.error('获取分类失败')
@@ -218,9 +237,8 @@ const fetchProducts = async () => {
       categoryId: selectedCategory.value,
     }
     const response = await getProductList(params)
-    if (response.data.code === 200) {
-      products.value = response.data.data || { records: [] }
-    }
+    console.log('Products response:', response)
+    products.value = response?.data || { records: [] }
   } catch (error) {
     console.error('获取商品列表失败:', error)
     ElMessage.error('获取商品列表失败')

@@ -10,6 +10,10 @@ spring:
   mvc:
     pathmatch:
       matching-strategy: ant_path_matcher
+    static-path-pattern: /uploads/**
+  web:
+    resources:
+      static-locations: file:uploads/
   application:
     name: microMall
   datasource:

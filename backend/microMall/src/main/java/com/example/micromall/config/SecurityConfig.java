@@ -71,6 +71,8 @@ public class SecurityConfig {
             .antMatchers(HttpMethod.GET, "/", "/*.html", "/**/*.html", "/**/*.css", "/**/*.js", "/favicon.ico").permitAll()
             // 商品相关的公开接口放行
             .antMatchers(HttpMethod.GET, "/products/**", "/categories/**").permitAll()
+            // 允许访问上传的文件
+            .antMatchers("/uploads/**", "/api/uploads/**").permitAll()
             // 其他接口需要认证
             .anyRequest().authenticated()
             .and()

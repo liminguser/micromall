@@ -131,17 +131,40 @@ const router = useRouter()
 const userStore = useUserStore()
 const cartStore = useCartStore()
 const cartItems = ref([])
+const loading = ref(false)
+
+// 处理图片URL
+const getImageUrl = (url) => {
+  if (!url || typeof url !== 'string') return ''
+  // 如果已经是完整URL则直接返回
+  if (url.startsWith('http')) return url
+  // 如果是以/uploads开头，添加/api前缀
+  if (url.startsWith('/uploads')) return `/api${url}`
+  // 如果不是以/api开头，添加/api前缀
+  return url.startsWith('/api') ? url : `/api${url}`
+}
 
 // 获取购物车列表
-const fetchCartList = async () => {
+const fetchCartItems = async () => {
+  loading.value = true
   try {
-    const response = await getCartList(userStore.user.id)
-    if (response.data.code === 200) {
-      cartItems.value = response.data.data
+    const response = await getCartList()
+    if (response?.data) {
+      cartItems.value = response.data.map(item => ({
+        ...item,
+        product: item.product ? {
+          ...item.product,
+          image: getImageUrl(item.product.image)
+        } : null
+      }))
+      cartStore.setCartItems(cartItems.value)
     }
   } catch (error) {
-    console.error('获取购物车失败:', error)
-    ElMessage.error('获取购物车失败')
+    console.error('获取购物车列表失败:', error)
+    ElMessage.error('获取购物车列表失败')
+    cartItems.value = []
+  } finally {
+    loading.value = false
   }
 }
 
@@ -176,8 +199,8 @@ const totalPrice = computed(() => {
 // 处理全选/取消全选
 const handleSelectAll = async (val) => {
   try {
-    await updateAllSelected(userStore.user.id, val)
-    await fetchCartList()
+    await updateAllSelected(val)
+    await fetchCartItems()
   } catch (error) {
     console.error('更新选中状态失败:', error)
     ElMessage.error('更新选中状态失败')
@@ -187,8 +210,8 @@ const handleSelectAll = async (val) => {
 // 处理单个商品选中状态
 const handleSelectItem = async (item, val) => {
   try {
-    await updateSelected(userStore.user.id, item.productId, val)
-    await fetchCartList()
+    await updateSelected(item.productId, val)
+    await fetchCartItems()
   } catch (error) {
     console.error('更新选中状态失败:', error)
     ElMessage.error('更新选中状态失败')
@@ -198,8 +221,8 @@ const handleSelectItem = async (item, val) => {
 // 处理数量变化
 const handleQuantityChange = async (item, val) => {
   try {
-    await updateQuantity(userStore.user.id, item.productId, val)
-    await fetchCartList()
+    await updateQuantity(item.productId, val)
+    await fetchCartItems()
     // 更新购物车数量
     await cartStore.fetchCartCount()
   } catch (error) {
@@ -216,10 +239,10 @@ const handleRemoveItem = async (item) => {
       cancelButtonText: '取消',
       type: 'warning'
     })
-    await removeFromCart(userStore.user.id, item.productId)
+    await removeFromCart(item.productId)
     ElMessage.success('删除成功')
     // 更新购物车列表和数量
-    await fetchCartList()
+    await fetchCartItems()
     await cartStore.fetchCartCount()
   } catch (error) {
     if (error !== 'cancel') {
@@ -237,10 +260,10 @@ const handleClearCart = async () => {
       cancelButtonText: '取消',
       type: 'warning'
     })
-    await clearCart(userStore.user.id)
+    await clearCart()
     ElMessage.success('清空成功')
     // 更新购物车列表和数量
-    await fetchCartList()
+    await fetchCartItems()
     await cartStore.fetchCartCount()
   } catch (error) {
     if (error !== 'cancel') {
@@ -256,7 +279,7 @@ const navigateToDetail = (productId) => {
 }
 
 onMounted(() => {
-  fetchCartList()
+  fetchCartItems()
 })
 </script>
 

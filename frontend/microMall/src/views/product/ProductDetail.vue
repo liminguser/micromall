@@ -74,6 +74,17 @@ const loading = ref(true)
 const userStore = useUserStore()
 const cartStore = useCartStore()
 
+// 处理图片URL
+const getImageUrl = (url) => {
+  if (!url || typeof url !== 'string') return ''
+  // 如果已经是完整URL则直接返回
+  if (url.startsWith('http')) return url
+  // 如果是以/uploads开头，添加/api前缀
+  if (url.startsWith('/uploads')) return `/api${url}`
+  // 如果不是以/api开头，添加/api前缀
+  return url.startsWith('/api') ? url : `/api${url}`
+}
+
 // 获取商品详情
 const fetchProductDetail = async () => {
   const productId = route.params.id
@@ -84,8 +95,11 @@ const fetchProductDetail = async () => {
 
   try {
     const response = await getProductDetail(productId)
-    if (response.data.code === 200) {
-      product.value = response.data.data
+    if (response?.data) {
+      product.value = {
+        ...response.data,
+        image: getImageUrl(response.data.image)
+      }
       if (!product.value || product.value.status === 0) {
         ElMessage.error('商品不存在或已下架')
         product.value = null
@@ -109,7 +123,7 @@ const handleAddToCart = async () => {
   }
 
   try {
-    await addToCart(userStore.user.id, product.value.id, quantity.value)
+    await addToCart(product.value.id, quantity.value)
     ElMessage.success('添加成功')
     // 更新购物车数量
     await cartStore.fetchCartCount()

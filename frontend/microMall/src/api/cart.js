@@ -1,12 +1,11 @@
 import request from '@/utils/request'
 
 // 添加商品到购物车
-export function addToCart(userId, productId, quantity = 1) {
+export function addToCart(productId, quantity = 1) {
   return request({
     url: '/cart/add',
     method: 'post',
-    params: {
-      userId,
+    data: {
       productId,
       quantity
     }
@@ -14,12 +13,11 @@ export function addToCart(userId, productId, quantity = 1) {
 }
 
 // 更新购物车商品数量
-export function updateQuantity(userId, productId, quantity) {
+export function updateQuantity(productId, quantity) {
   return request({
     url: '/cart/update/quantity',
     method: 'put',
-    params: {
-      userId,
+    data: {
       productId,
       quantity
     }
@@ -27,60 +25,51 @@ export function updateQuantity(userId, productId, quantity) {
 }
 
 // 删除购物车商品
-export function removeFromCart(userId, productId) {
+export function removeFromCart(productId) {
   return request({
     url: '/cart/delete',
     method: 'delete',
     params: {
-      userId,
       productId
     }
   })
 }
 
 // 获取购物车列表
-export function getCartList(userId) {
+export function getCartList() {
   return request({
     url: '/cart/list',
-    method: 'get',
-    params: {
-      userId
-    }
+    method: 'get'
   })
 }
 
 // 更新商品选中状态
-export function updateSelected(userId, productId, selected) {
+export function updateSelected(productId, selected) {
   return request({
     url: '/cart/update/selected',
     method: 'put',
-    params: {
-      userId,
+    data: {
       productId,
       selected
     }
   })
 }
 
-// 更新所有商品选中状态
-export function updateAllSelected(userId, selected) {
+// 更新全部商品选中状态
+export function updateAllSelected(selected) {
   return request({
     url: '/cart/update/all-selected',
     method: 'put',
-    params: {
-      userId,
+    data: {
       selected
     }
   })
 }
 
 // 清空购物车
-export function clearCart(userId) {
+export function clearCart() {
   return request({
     url: '/cart/clear',
-    method: 'delete',
-    params: {
-      userId
-    }
+    method: 'delete'
   })
 } 
