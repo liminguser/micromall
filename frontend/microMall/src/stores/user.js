@@ -26,15 +26,23 @@ export const useUserStore = defineStore('user', () => {
   const login = async (credentials) => {
     try {
       const response = await axios.post('/api/auth/login', credentials)
-      if (response.data.code === 200 && response.data.data) {
-        const { token: newToken, ...userData } = response.data.data
-        setToken(newToken)
-        setUser(userData)
+      const { code, message, data } = response.data
+      
+      if (code !== 200 || !data) {
+        throw new Error(message || '登录失败')
       }
-      return response
+
+      const { token: newToken, ...userData } = data
+      if (!newToken || !userData) {
+        throw new Error('登录响应数据无效')
+      }
+
+      setToken(newToken)
+      setUser(userData)
+      return response.data
     } catch (error) {
       logout()
-      throw error
+      throw error.response?.data || error
     }
   }
 
@@ -42,28 +50,38 @@ export const useUserStore = defineStore('user', () => {
   const register = async (userData) => {
     try {
       const response = await axios.post('/api/auth/register', userData)
-      return response
+      const { code, message } = response.data
+      
+      if (code !== 200) {
+        throw new Error(message || '注册失败')
+      }
+      
+      return response.data
     } catch (error) {
-      throw error
+      throw error.response?.data || error
     }
   }
 
   // 设置用户信息
   const setUser = (userData) => {
+    if (!userData || typeof userData !== 'object') {
+      console.error('Invalid user data:', userData)
+      return
+    }
     user.value = userData
     localStorage.setItem('user', JSON.stringify(userData))
   }
 
   // 设置token
   const setToken = (tokenValue) => {
+    if (!tokenValue || typeof tokenValue !== 'string') {
+      console.error('Invalid token:', tokenValue)
+      return
+    }
     token.value = tokenValue
     localStorage.setItem('token', tokenValue)
     // 设置 axios 默认 headers
-    if (tokenValue) {
-      axios.defaults.headers.common['Authorization'] = `Bearer ${tokenValue}`
-    } else {
-      delete axios.defaults.headers.common['Authorization']
-    }
+    axios.defaults.headers.common['Authorization'] = `Bearer ${tokenValue}`
   }
 
   // 登出

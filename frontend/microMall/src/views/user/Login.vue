@@ -57,7 +57,7 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
 import { User, Lock } from '@element-plus/icons-vue'
@@ -73,6 +73,25 @@ const formData = reactive({
   username: '',
   password: '',
 })
+
+// 初始化表单数据
+const initFormData = () => {
+  // 从 localStorage 读取保存的登录信息
+  const savedLoginInfo = localStorage.getItem('loginInfo')
+  if (savedLoginInfo) {
+    try {
+      const { username, password, remember } = JSON.parse(savedLoginInfo)
+      if (remember) {
+        formData.username = username
+        formData.password = password
+        rememberMe.value = true
+      }
+    } catch (error) {
+      console.error('Error parsing saved login info:', error)
+      localStorage.removeItem('loginInfo')
+    }
+  }
+}
 
 const rules = {
   username: [
@@ -92,6 +111,18 @@ const handleSubmit = async () => {
     await formRef.value.validate()
     loading.value = true
 
+    // 如果勾选了记住我，保存登录信息
+    if (rememberMe.value) {
+      localStorage.setItem('loginInfo', JSON.stringify({
+        username: formData.username,
+        password: formData.password,
+        remember: true
+      }))
+    } else {
+      // 如果没有勾选，清除保存的登录信息
+      localStorage.removeItem('loginInfo')
+    }
+
     await userStore.login({
       ...formData,
       remember: rememberMe.value,
@@ -100,7 +131,7 @@ const handleSubmit = async () => {
     ElMessage.success('登录成功')
     router.push('/')
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '登录失败')
+    ElMessage.error(error.message || '登录失败')
   } finally {
     loading.value = false
   }
@@ -109,6 +140,11 @@ const handleSubmit = async () => {
 const navigateTo = (path) => {
   router.push(path)
 }
+
+// 在组件挂载时初始化表单数据
+onMounted(() => {
+  initFormData()
+})
 </script>
 
 <style scoped>
